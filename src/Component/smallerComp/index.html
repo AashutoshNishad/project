@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Scrollable & Zoomable Canvas with Nested Grid</title>
+    <style>
+        body, html { margin: 0; overflow: hidden; }
+        #canvas { background: #f0f0f0; display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        // Canvas settings
+        let canvasWidth = window.innerWidth;
+        let canvasHeight = window.innerHeight;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        // Transform settings
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // Mouse state
+        let isDragging = false;
+        let lastMouseX, lastMouseY;
+
+        // Fine grid threshold (scale at which fine grid appears)
+        const fineGridThreshold = 2; // Adjust as needed
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            draw();
+        });
+
+        // Handle panning
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+
+                offsetX += dx;
+                offsetY += dy;
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => { isDragging = false; });
+        canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+        // Handle zooming
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomIntensity = 0.1;
+            const wheel = e.deltaY < 0 ? 1 : -1;
+            const zoomFactor = 1 + wheel * zoomIntensity;
+
+            // Update scale and offset for zoom
+            scale *= zoomFactor;
+            offsetX -= (e.clientX - offsetX) * (zoomFactor - 1);
+            offsetY -= (e.clientY - offsetY) * (zoomFactor - 1);
+
+            draw();
+        });
+
+        // Draw content on the canvas
+        function draw() {
+            context.save();
+            context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            // Apply transform for panning and zooming
+            context.translate(offsetX, offsetY);
+            context.scale(scale, scale);
+
+            // Draw primary grid for infinite scroll effect
+            drawGrid(50, "#ddd"); // Large grid with a size of 50 pixels
+
+            // Draw finer grid when zoomed in past the threshold
+            if (scale > fineGridThreshold) {
+                drawGrid(10, "#bbb"); // Fine grid with a size of 10 pixels
+            }
+
+            context.restore();
+        }
+
+        // Function to draw a grid of a given cell size and color
+        function drawGrid(gridSize, color) {
+            context.beginPath();
+            for (let x = -5000; x < 5000; x += gridSize) {
+                context.moveTo(x, -5000);
+                context.lineTo(x, 5000);
+            }
+            for (let y = -5000; y < 5000; y += gridSize) {
+                context.moveTo(-5000, y);
+                context.lineTo(5000, y);
+            }
+            context.strokeStyle = color;
+            context.lineWidth = 0.5;
+            context.stroke();
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>
